@@ -39,7 +39,7 @@ func main() {
 		}
 
     v := evaluator.Eval(p.ParseProgram(), object.NewEnvironment())
-    if v != nil {
+    if v != nil && v.Type() != object.NULL_OBJ {
       fmt.Printf(v.Inspect())
       fmt.Printf("\n")
     }
