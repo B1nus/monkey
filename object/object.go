@@ -8,26 +8,26 @@ import (
 )
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
-  env := NewEnvironment()
-  env.outer = outer
-  return env
+	env := NewEnvironment()
+	env.outer = outer
+	return env
 }
 
 type Environment struct {
 	store map[string]Object
-  outer *Environment
+	outer *Environment
 }
 
 func NewEnvironment() *Environment {
 	s := make(map[string]Object)
-  return &Environment{store: s}
+	return &Environment{store: s}
 }
 
 func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store[name]
-  if !ok && e.outer != nil {
-    obj, ok = e.outer.Get(name)
-  }
+	if !ok && e.outer != nil {
+		obj, ok = e.outer.Get(name)
+	}
 	return obj, ok
 }
 
@@ -42,10 +42,80 @@ const (
 	FUNCTION_OBJ = "FUNCTION"
 	INTEGER_OBJ  = "INTEGER"
 	BOOLEAN_OBJ  = "BOOLEAN"
+	BUILTIN_OBJ  = "BUILTIN"
 	RETURN_OBJ   = "RETURN"
+	STRING_OBJ   = "STRING"
+	ARRAY_OBJ    = "ARRAY"
 	ERROR_OBJ    = "ERROR"
+	HASH_OBJ     = "HASH"
 	NULL_OBJ     = "NULL"
 )
+
+type Hashable interface {
+	HashKey() string
+}
+
+func (b *Boolean) HashKey() string {
+	return "b_" + b.Inspect()
+}
+func (i *Integer) HashKey() string {
+	return "i_" + i.Inspect()
+}
+
+func (s *String) HashKey() string {
+	return "s_" + s.Inspect()
+}
+
+type Hash struct {
+	Pairs map[string]Object
+}
+
+func (h *Hash) Type() ObjectType { return HASH_OBJ }
+func (h *Hash) Inspect() string {
+	var out bytes.Buffer
+	pairs := []string{}
+	for key, val := range h.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s",
+    key[2:], val.Inspect()))
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+	return out.String()
+}
+
+type Array struct {
+	Elements []Object
+}
+
+func (ao *Array) Type() ObjectType { return ARRAY_OBJ }
+func (ao *Array) Inspect() string {
+	var out bytes.Buffer
+	elements := []string{}
+	for _, e := range ao.Elements {
+		elements = append(elements, e.Inspect())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
+
+type BuiltinFunction func(args ...Object) Object
+
+type Builtin struct {
+	Fn BuiltinFunction
+}
+
+func (_ *Builtin) Type() ObjectType { return BUILTIN_OBJ }
+func (_ *Builtin) Inspect() string  { return "builtin function" }
+
+type String struct {
+	Value string
+}
+
+func (s *String) Type() ObjectType { return STRING_OBJ }
+func (s *String) Inspect() string  { return s.Value }
 
 type Function struct {
 	Parameters []*ast.Identifier
